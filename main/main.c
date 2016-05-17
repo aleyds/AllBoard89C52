@@ -1,6 +1,6 @@
 #include "base_type.h"
 #include "wdg.h"
-#include "led.h"
+#include "display.h"
 #include "tools.h"
 #include "timer.h"
 #include "keyboard.h"
@@ -25,13 +25,13 @@ static void _InterruptClose(void)
 
 static void _Timer0Callback(void)
 {
-	if(SONSER_VDET&0x1)//ä¼ æ„Ÿå™¨ä¿¡å·ä¸ºé«˜ç”µå¹³
+	if(SONSER_VDET&0x1)//´«¸ĞÆ÷ĞÅºÅÎª¸ßµçÆ½
 	{
-		//TODO:æ— ç”µæœºè½¬åŠ¨ï¼Œæ–­å¼€ç»§ç”µå™¨åœæ­¢å‘å·¥æ§æ¿ä¾›ç”µ
+		//TODO:ÎŞµç»ú×ª¶¯£¬¶Ï¿ª¼ÌµçÆ÷Í£Ö¹Ïò¹¤¿Ø°å¹©µç
 	}
 }
 
-
+#if 0
 //Project running Main
 void main()
 {
@@ -43,7 +43,7 @@ void main()
 	while(1)
 	{
 		
-		if(START_VDET&0x1)//æ£€æµ‹å¼€å§‹ä¿¡å·åå¼€å§‹æ£€æµ‹ä¼ æ„Ÿå™¨ä¿¡å·
+		if(START_VDET&0x1)//¼ì²â¿ªÊ¼ĞÅºÅºó¿ªÊ¼¼ì²â´«¸ĞÆ÷ĞÅºÅ
 		{
 			g_StartSonser = 1;
 		}
@@ -62,26 +62,29 @@ void main()
 	}
 }
 
-/*
+#else
+
 //Test Main function
 void main()
 {
 	//wy_wdg_start();
-	wy_led_display(_LED_0, H_TRUE);
+	//wy_led_display(_LED_0, H_TRUE);
 	//wy_led_display(_LED_1, H_TRUE);
 	//wy_led_display(_LED_2, H_TRUE);
 	//_InterruptOpen();
 	//wy_timer_open(_TIMER0,10000);
+	
 	while(1)
 	{
-		wy_delay(1000);
+		_DigitalTest();
+		//wy_delay(1000);
 		//Led1=1;
-		wy_led_display(_LED_0, H_FAUSE);
-		wy_delay(1000);
-		wy_SysReset();
+		//wy_led_display(_LED_0, H_FAUSE);
+		//wy_delay(1000);
+		//wy_SysReset();
 		//wy_led_display(_LED_1, H_FAUSE);
 		//wy_led_display(_LED_2, H_FAUSE);
 	}
 }
-*/
+#endif
 
