@@ -76,7 +76,7 @@ void main()
 	
 	while(1)
 	{
-		_DigitalTest();
+		_MatrixKeyTest();
 		//wy_delay(1000);
 		//Led1=1;
 		//wy_led_display(_LED_0, H_FAUSE);

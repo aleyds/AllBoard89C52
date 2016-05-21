@@ -19,6 +19,11 @@ void wy_External1(void) interrupt 2
 void wy_uart(void) interrupt 4
 {
 	//TODO:串口中断
+	if(RI)//串口数据接收标志
+	{
+		RI = 0;//清除标志
+		
+	}
 }
 
 
