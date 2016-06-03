@@ -14,7 +14,9 @@ typedef enum{
 }LedType_e;
 
 H_S32 wy_led_display(LedType_e type, H_BOOL on);
-void wy_digital_display(H_U8 number, H_U8 display, H_U8 point);
+
+//Test Function
 void _LEDTest(void);
 void _DigitalTest();
+void _LcdTest(void);
 #endif

@@ -17,9 +17,8 @@ typedef enum {
 	_KEYBOARD_T13,
 	_KEYBOARD_T14,
 	_KEYBOARD_T15,
-	_KEYBOARD_T16,
 	_KEYBOARD_MAX,
 }KeyBoard_Type;
 
-void _MatrixKeyTest(void);
+
 #endif
