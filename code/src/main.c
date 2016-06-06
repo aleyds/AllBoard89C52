@@ -1,9 +1,6 @@
 #include "base_type.h"
-#include "wdg.h"
-#include "display.h"
-#include "tools.h"
+#include "uart.h"
 #include "timer.h"
-#include "keyboard.h"
 #include "REG51.H"
 
 sbit Led1 = P1^0;
@@ -13,78 +10,42 @@ sbit Led4 = P1^ 3;
 
 static char g_StartSonser = 0;
 
-static void _InterruptOpen(void)
+static void _SystemInit(void)
 {
 	EA=1;
 }
 
-static void _InterruptClose(void)
-{
-	EA=0;
-}
-
 static void _Timer0Callback(void)
 {
-	if(SONSER_VDET&0x1)//传感器信号为高电平
-	{
-		//TODO:无电机转动，断开继电器停止向工控板供电
-	}
+	hs_printf("Timer0 Callback\n\r");
 }
 
-#if 0
-//Project running Main
-void main()
+static void TimerTest(void)
 {
-	KeyBoard_Type _KeyType = _KEYBOARD_T1;
-	H_U32 TimerTime = 0;
-	//Step1:Interrupt Init 
-	_InterruptOpen();
-	//Step2:wait check click
-	while(1)
-	{
-		
-		if(START_VDET&0x1)//检测开始信号后开始检测传感器信号
-		{
-			g_StartSonser = 1;
-		}
-		if(g_StartSonser == 1)
-		{
-			_KeyType = _KeyBoardScan();
-			if(_KeyType != _KEYBOARD_MAX)
-			{
-				wy_timer_close(_TIMER0);
-				TimerTime = 100*_KeyType + 100;
-				wy_timer_open(_TIMER0, TimerTime, _Timer0Callback);
-			}
-		}
-		
-		
-	}
+	static TimerList_T _TimerComm;
+	_TimerComm._TimerID =0;
+	_TimerComm._State = _STATE_INIT;
+	_TimerComm._Mode = _MODE_REPEATED;
+	_TimerComm._TicksInit = 1000;//1s
+	_TimerComm._Handler = _Timer0Callback;
+	_TimerCreat(&_TimerComm);
+	_TimerStart(_TimerComm._TimerID);
 }
-
-#else
 
 //Test Main function
 void main()
 {
-	//wy_wdg_start();
-	//wy_led_display(_LED_0, H_TRUE);
-	//wy_led_display(_LED_1, H_TRUE);
-	//wy_led_display(_LED_2, H_TRUE);
-	//_InterruptOpen();
-	//wy_timer_open(_TIMER0,10000);
+	_SystemInit();
+	//Uart Init
+	_UartOpen();
+	//Timer Init
+	_TimerInit();
+	
+	TimerTest();
 	
 	while(1)
 	{
-		_DigitalTest();
-		//wy_delay(1000);
-		//Led1=1;
-		//wy_led_display(_LED_0, H_FAUSE);
-		//wy_delay(1000);
-		//wy_SysReset();
-		//wy_led_display(_LED_1, H_FAUSE);
-		//wy_led_display(_LED_2, H_FAUSE);
+		
 	}
 }
-#endif
 

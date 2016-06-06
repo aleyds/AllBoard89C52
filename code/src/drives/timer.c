@@ -1,129 +1,90 @@
 #include"base_type.h"
 #include "timer.h"
-#include "led.h"
-#include "tools.h"
 
-struct TimerSt{
-	H_U16 init;
-	H_U16 counter;
-	TimerCallback call;
-};
+//不同晶振定时1ms初始不同，根据具体使用进行配置
+#define TIMER0TH		0x1C //1ms  晶振11.0592MHz 0x1C   晶振16MHz 0x1A   晶振12MHz 0x1C
+#define TIMER0TL		0x66 //1ms  晶振11.0592MHz 0x66	晶振16MHz 0xCB	 晶振12MHz 0x18
 
-typedef struct TimerManage{
-	struct TimerSt timer0;
-}_TimerManage_t;
+static LIST_HEAD(g_TimerList);
 
-static _TimerManage_t g_timer_manage;
-
-/*
-static void _Timer0Callback(void)
+//定期器0  作为通用定时器  工作方式0
+void _Timer0IRQHandler(void) interrupt 1
 {
-	wy_led_display(_LED_0, H_TRUE);
-	wy_delay(500);
-	wy_led_display(_LED_0, H_FAUSE);
-}
-*/
-
-void wy_timer0(void) interrupt 1
-{
-	TH0=(8192-6666)/32; //(8192-N)/32  N=t(us)/(12*1/晶振频率Hz) 设置定时器0初值 5ms
-	TL0=(8192-6666)%32;	//(8192-N)%32
-	//TODO:定时器T0中断
-	if(g_timer_manage.timer0.counter == 0)
+	TimerList_T *_pPos;
+	TH0=TIMER0TH; 
+	TL0=TIMER0TL;
+	
+	list_for_each_entry(_pPos, &g_TimerList, entries, TimerList_T)
 	{
-		g_timer_manage.timer0.counter = g_timer_manage.timer0.init;
-		if(g_timer_manage.timer0.call != H_NULL)
+		if(_pPos != H_NULL)
 		{
-			g_timer_manage.timer0.call();
-		
+			if(_pPos->_State == _STATE_START)
+			{
+				if(_pPos->_TicksCount == 0)//计数时间到，溢出
+				{
+					_pPos->_TicksCount = _pPos->_TicksInit;//计数重新赋值
+					_pPos->_Handler();//调用溢出处理函数
+					if(_pPos->_Mode == _MODE_ONCE)//只执行一次的定时器，释放资源
+					{
+						_pPos->_State = _STATE_INIT;
+					}
+				}
+			}else if(_pPos->_State == _STATE_STOP)
+			{
+				_pPos->_TicksCount = _pPos->_TicksInit;//计数重新赋值
+			}
+			
 		}
 	}
-	g_timer_manage.timer0.counter--;
 }
 
-void wy_timer1(void) interrupt 3
+void _TimerInit(void)
 {
-	//TODO:定时器T1中断
-}
-
-void wy_timer2(void) interrupt 5
-{
-	//TODO:定时器T2中断
-}
-
-static void _Timer0Open(H_U32 ms, TimerCallback call)
-{
-	TR0=0;//先关闭定时器0
-	TMOD=0x00;//定时器工作在方式0
-	TH0=(8192-6666)/32; //设置定时器0初值 5ms
-	TL0=(8192-6666)%32;
+	//定时器T0为常用定时器
+	TR0 = 0;//先关闭定时器0
+	TMOD |= 0x00;//定时器工作在方式0
+	TH0 = TIMER0TH; //设置定时器0初值 5ms
+	TL0 = TIMER0TL;
 	ET0=1;//开启定时器0中断
 	TR0=1;//开启定时器0
-	g_timer_manage.timer0.init = ms/5;
-	g_timer_manage.timer0.counter = g_timer_manage.timer0.init;
-	g_timer_manage.timer0.call = call;
 }
 
-static void _Timer1Open(H_U32 ms)
+H_U32 _TimerCreat(TimerList_T *_Timer)
 {
-	
+	list_add_tail(&_Timer->entries, &g_TimerList);
+	return _Timer->_TimerID;
 }
 
-static void _Timer2Open(H_U32 ms)
+void _TimerStart(H_U32 _TimerID)
 {
-	
-}
-
-static void _Timer0Close(void)
-{
-	TR0=0;//先关闭定时器0
-}
-
-static void _Timer1Close(void)
-{
-	
-}
-
-static void _Timer2Close(void)
-{
-	
-}
-
-
-H_U32 wy_timer_open(_TimerType_e type, H_U32 time, TimerCallback call)
-{
-	switch(type)
+	TimerList_T *_pPos;
+	list_for_each_entry(_pPos, &g_TimerList, entries, TimerList_T)
 	{
-		case _TIMER0:
-			_Timer0Open(time,call);
-			break;
-		case _TIMER1:
-			_Timer1Open(time);
-			break;
-		case _TIMER2:
-			_Timer2Open(time);
-			break;
-		default:
-			break;
+		if(_pPos != H_NULL)
+		{
+			if(_TimerID == _pPos->_TimerID)
+			{
+				_pPos->_State = _STATE_START;
+				return;
+			}
+		}
 	}
-	return H_SUCCESS;
 }
 
-H_U32 wy_timer_close(_TimerType_e type)
+void _TimerStop(H_U32 _TimerID)
 {
-	switch(type)
+	TimerList_T *_pPos;
+	list_for_each_entry(_pPos, &g_TimerList, entries, TimerList_T)
 	{
-		case _TIMER0:
-			_Timer0Close();
-			break;
-		case _TIMER1:
-			_Timer1Close();
-			break;
-		case _TIMER2:
-			_Timer2Close();
-			break;
-		default:
-			break;
+		if(_pPos != H_NULL)
+		{
+			if(_TimerID == _pPos->_TimerID)
+			{
+				_pPos->_State = _STATE_STOP;
+				return;
+			}
+		}
 	}
-	return H_SUCCESS;
 }
+
+

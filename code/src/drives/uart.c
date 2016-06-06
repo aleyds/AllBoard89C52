@@ -1,8 +1,11 @@
+#include "config.h"
+#ifdef UART_ENABLE
 #include "base_type.h"
 #include <stdarg.h>
+
 #include "uart.h"
 
-#define check_zero(data)\
+#define DATAZERO(data)\
 do{\
 	if(data == 0)\
 	{\
@@ -29,17 +32,6 @@ static void __UartSend(H_U8 _ch)
 	TI=0;
 }
 
-
-static void __UartPutDec(H_U32 dec)
-{
-	if(dec == 0)
-	{
-		return;
-	}
-	__UartPutDec(dec/10);
-	__UartSend((H_U8)(dec%10 + '0'));
-}
-
 static void __UartPutStr(const H_U8 *str)
 {
 	while(*str != '\0')
@@ -48,33 +40,18 @@ static void __UartPutStr(const H_U8 *str)
 	}
 }
 
-static void __UartPutBin(H_U32 bin)
+static void __UartPutDec(H_U32 dec)
 {
-	if(bin == 0)
-	{
-		__UartPutStr("0b");
-		return;
-	}
-	__UartPutBin(bin/2);
-	__UartSend((H_U8 )(bin%2 + '0'));
+	H_U8 _Buffer[10]  = { 0 };
+	sprintf(_Buffer, "%d",dec);
+	__UartPutStr(_Buffer);
 }
 
 static void __UartPutHex(H_U32 hex)
 {
-	if(hex == 0)
-	{
-		__UartPutStr("0x");
-		return;
-	}
-	__UartPutHex(hex/16);
-	if(hex%16 < 10)
-	{
-		__UartSend((H_U8)(hex%16 + '0'));
-	}
-	else
-	{
-		__UartSend((H_U8)((hex%16 - 10) + 'A'));
-	}
+	H_U8 _Buffer[10] = { 0 };
+	sprintf(_Buffer, "0x%x",hex);
+	__UartPutStr(_Buffer);
 }
 
 void _UartPrintf(H_U8 *fmt, ...)
@@ -101,7 +78,7 @@ void _UartPrintf(H_U8 *fmt, ...)
 				case 'd':
 				case 'i':
 					vargint = va_arg(vp, H_U32);
-					//check_zero(vargint);
+					DATAZERO(vargint);
 					__UartPutDec(11);
 					break;
 				case 's':
@@ -110,14 +87,10 @@ void _UartPrintf(H_U8 *fmt, ...)
 					break;
 				case 'b':
 				case 'B':
-					vargint = va_arg(vp, H_U32);
-					check_zero(vargint);
-					__UartPutBin(vargint);
-					break;
 				case 'x':
 				case 'X':
 					vargint = va_arg(vp, H_U32);
-					//check_zero(vargint);
+					DATAZERO(vargint);
 					__UartPutHex(vargint);
 					break;
 				case '%':
@@ -132,5 +105,20 @@ void _UartPrintf(H_U8 *fmt, ...)
 		}
 	}
 	va_end(vp);
-
 }
+
+void _UartIRQHandler(void) interrupt 4
+{
+	H_U8 _RecvData = 0;
+	if(RI) //串口中断产生标志
+	{
+		RI = 0;//清除中断产生标志
+		_RecvData = SBUF;
+		//TODO: 需要数据做的事情
+	}
+	if(TI) //如果发生端有数据，清除发送标志
+	{
+		TI = 0;
+	}
+}
+#endif
